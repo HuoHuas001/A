@@ -32,7 +32,9 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         ls
-        cd SDK/Tools
+        cd SDK
+        ls
+        cd Tools
         mkdir ../LiteLoader
         mkdir ../LiteLoader/Lib
         ./LibraryBuilder.exe D:/BDS
