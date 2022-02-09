@@ -145,7 +145,7 @@ public:
 
 void PluginInit()
 {
-	LL::registerPlugin("Survival_Fly", "Fly in Suvival mode.", LL::Version(1, 0, 0));
+	LL::registerPlugin("Survival_Fly", "Fly in Suvival mode.", LL::Version(0, 0, 1));
 	bool rf = readFile();
 	if(!rf){
 		logger.error("Failed to read config file,please check.");
