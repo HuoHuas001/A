@@ -28,18 +28,17 @@ jobs:
         unzip D:/BDS/server.zip -d D:/BDS > /dev/null
       shell: bash
 
-    - name: Build Library
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        ls
-        cd SDK
-        ls
-        cd Tools
-        mkdir ../LiteLoader
-        mkdir ../LiteLoader/Lib
-        ./LibraryBuilder.exe D:/BDS
-        mv ../LiteLoader/Lib/* ../Lib/
-      shell: bash
+    # - name: Build Library
+    #   working-directory: ${{env.GITHUB_WORKSPACE}}
+    #   run: |
+    #     cd SDK
+    #     ls
+    #     cd Tools
+    #     mkdir ../LiteLoader
+    #     mkdir ../LiteLoader/Lib
+    #     ./LibraryBuilder.exe D:/BDS
+    #     mv ../LiteLoader/Lib/* ../Lib/
+    #   shell: bash
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1
