@@ -22,8 +22,8 @@ jobs:
     - name: Download SDK
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        git submodule add https://github.com/LiteLDev/LiteLoaderSDK.git ./LLDSK
-        mv D:/a/Survival_Fly/Survival_Fly/LLDSK SDK
+        git submodule init
+        git submodule update
       shell: bash
      
     - name: Download Server
