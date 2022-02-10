@@ -22,9 +22,7 @@ jobs:
     - name: Download SDK
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        SDKLink=https://github.com/LiteLDev/LiteLoaderSDK/archive/refs/heads/main.zip
-        curl -L -o ./SDK/SDK.zip "$SDKLink"
-        unzip ./SDK/SDK.zip -d ./SDK > /dev/null
+        git submodule add LiteLDev LiteLoaderSDK
       shell: bash
      
     - name: Download Server
