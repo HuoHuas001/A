@@ -61,14 +61,14 @@ jobs:
         mkdir D:/out/sdk/Lib
         mkdir D:/out/sdk/Header
         mkdir D:/out/plugins
-        mkdir D:/out/plugins/Survival_Fly
+        mkdir D:/out/plugins/SurvivalFly
     
     - name: Copy Out Files
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cp x64/Release/*.dll D:/out/plugins
         cp x64/Release/*.pdb D:/out/plugins
-        cp Survival_Fly/*.json D:/out/plugins/Survival_Fly
+        cp SurvivalFly/*.json D:/out/plugins/SurvivalFly
       shell: bash
 
     - name: Upload plugins
