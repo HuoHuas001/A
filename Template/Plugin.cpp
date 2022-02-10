@@ -240,3 +240,4 @@ THook(LevelSettings*, "?setEducationFeaturesEnabled@LevelSettings@@QEAAAEAV1@_N@
 	return _this;
 }
 
+
