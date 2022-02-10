@@ -18,6 +18,14 @@ jobs:
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1
+
+    - name: Download SDK
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        SDKLink=https://github.com/LiteLDev/LiteLoaderSDK/archive/refs/heads/main.zip
+        curl -L -o ./SDK/SDK.zip "$SDKLink"
+        unzip ./SDK/SDK.zip -d ./SDK > /dev/null
+      shell: bash
      
     - name: Download Server
       working-directory: ${{env.GITHUB_WORKSPACE}}
@@ -85,3 +93,12 @@ jobs:
           D:/out/plugins.zip
       env:
           GITHUB_REPOSITORY: HuoHuas001/Survival_Fly
+
+  Clean:
+    runs-on: ubuntu-latest
+    if: ${{ always() }} # 防止前面三者跑着跑着报错，这一步骤不执行导致libs删不掉的现象发生
+    needs: [build]
+    steps:
+      - uses: geekyeggo/delete-artifact@v1
+        with:
+          name: libs
