@@ -15,14 +15,22 @@
 #include <MC/ServerPlayer.hpp>
 #include <RegCommandAPI.h>
 #include <PlayerInfoAPI.h>
+#include <MC/LevelData.hpp>
+#include <MC/LevelSettings.hpp>
+#include <MC/MinecraftEventing.hpp>
+#include <MC/ActorDamageSource.hpp>
 #include "../SDK/Header/third-party/Nlohmann/json.hpp"
+#include <windows.h>
 using namespace RegisterCommandHelper;
 
-static std::unordered_map<Player*, bool> Flying;
+#define HOOK(name, ret, sym, ...)	
+
+static std::unordered_map<string, bool> Flying;
 using nlohmann::json;
 
 Logger logger("Survival_Fly");
 bool onlyOp = false, onlyAllow = false, slowFalling = true;
+string particle = "";
 int Falling = 3;
 json allowList = {};
 bool readFile() {
@@ -37,6 +45,7 @@ bool readFile() {
 	onlyAllow = config["onlyAllow"];
 	slowFalling = config["slowFalling"];
 	allowList = config["allowList"];
+	particle = config["particle"].get<string>();
 	Falling = config["FallingPoint"].get<int>();
 	if (Falling > 0) {
 		Falling *= -1;
@@ -66,6 +75,7 @@ class MayflyCommand : public Command {
 public:
 	void execute(CommandOrigin const& ori, CommandOutput& output) const override {//执行部分
 		string dsxuid;
+		Player* p = Level::getPlayer(dst);
 		switch (op) {
 			case add:
 				dsxuid = PlayerInfo::getXuid(dst);
@@ -86,21 +96,20 @@ public:
 				}
 				break;
 			case set:
-				for (auto p : Level::getAllPlayers()) {
-					if (p->getName() == dst) {
-						if (!state) {
-							Flying[p] = false;
-							Level::runcmdEx("ability \"" + p->getName() + "\" mayfly false");
-						}
-						else {
-							Flying[p] = true;
-							Level::runcmdEx("ability \"" + p->getName() + "\" mayfly true");
-						}
-						
-						output.addMessage("Seted \"" + dst + "\" mayfly "+std::to_string((bool)state));
-						return;
+				if (p) {
+					if (!state) {
+						Flying[p->getXuid()] = false;
+						Level::runcmdEx("ability \"" + p->getName() + "\" mayfly false");
 					}
+					else {
+						Flying[p->getXuid()] = true;
+						Level::runcmdEx("ability \"" + p->getName() + "\" mayfly true");
+					}
+						
+					output.addMessage("Seted \"" + dst + "\" mayfly "+std::to_string((bool)state));
+					return;
 				}
+				
 				output.addMessage("Not found target");
 				return;
 				break;
@@ -143,6 +152,10 @@ public:
 	}
 };
 
+bool getPlayerInAir(Player* pl) {
+	return (!pl->isOnGround()) && (!pl->isInWater());
+}
+
 void PluginInit()
 {
 	LL::registerPlugin("Survival_Fly", "Fly in Suvival mode.", LL::Version(0, 0, 1));
@@ -154,19 +167,19 @@ void PluginInit()
 	Event::PlayerJoinEvent::subscribe([](Event::PlayerJoinEvent ev) {
 		Player* pl = ev.mPlayer;
 		if (onlyOp && pl->isOP()) {
-			Flying[pl] = true;
+			Flying[pl->getXuid()] = true;
 			Level::runcmdEx("ability \"" + pl->getName() + "\" mayfly true");
 		}
 		else if (onlyAllow && getArrayL(pl->getXuid())) {
-			Flying[pl] = true;
+			Flying[pl->getXuid()] = true;
 			Level::runcmdEx("ability \"" + pl->getName() + "\" mayfly true");
 		}
 		else if (onlyOp == false && onlyAllow == false) {
-			Flying[pl] = true;
+			Flying[pl->getXuid()] = true;
 			Level::runcmdEx("ability \"" + pl->getName() + "\" mayfly true");
 		}
 		else {
-			Flying[pl] = false;
+			Flying[pl->getXuid()] = false;
 		}
 		return true;
 	});
@@ -175,6 +188,41 @@ void PluginInit()
 		MayflyCommand::setup(ev.mCommandRegistry);
 		return true;
 	});
+
+	Event::PlayerLeftEvent::subscribe([](Event::PlayerLeftEvent ev) {
+		Flying[ev.mXUID] = false;
+		return true;
+	});
+
+	if (slowFalling) {
+		Event::MobHurtEvent::subscribe([](Event::MobHurtEvent ev) {
+			Actor* ac = ev.mMob;
+			if (ac->isPlayer()) {
+				Player* pl = (Player*)ac;
+				logger.info(pl->getPos().toString());
+				if ((ev.mDamageSource->getCause() == ActorDamageCause::Fall) && Flying[pl->getXuid()]) {
+					Level::runcmdEx("effect \"" + pl->getName() + "\" slow_falling 1 1 true");
+				}
+			}
+			return true;
+		});
+	}
+
+	if (particle != "") {
+		Event::PlayerMoveEvent::subscribe([](Event::PlayerMoveEvent ev) {
+			for (auto iter = Flying.begin(); iter != Flying.end(); iter++) {
+				string xuid = iter->first;
+				bool state = iter->second;
+				if (state) {
+					Player* pl = Level::getPlayer(xuid);
+					if (pl) {
+						Level::spawnParticleEffect(particle, pl->getPos(), Level::getDimension(pl->getDimensionId()));
+					}
+				}
+			}
+			return true;
+		});
+	}
 }
 
 //强开ability
@@ -184,27 +232,11 @@ THook(void, "?setup@ChangeSettingCommand@@SAXAEAVCommandRegistry@@@Z",
 	return original(self);
 }
 
-//Tick
-int tickNum = 0;
-THook(void, "?tick@Level@@UEAAXXZ", void* self) {
-	original(self);
-	if (tickNum >= 20) {
-		if (slowFalling) {
-			for (auto p : Level::getAllPlayers()) {
-				if (Flying[p]) {
-					Block* bl = Level::getBlock(p->getBlockPos().add(0, Falling, 0), p->getDimensionId());
-					if (bl->getTypeName() == "minecraft:air") {
-						Level::runcmdEx("effect \"" + p->getName() + "\" slow_falling 1 1 true");
-					}
-					else {
-						p->removeEffect(27);
-					}
-				}
-			}
-		}
-	}
-	else {
-		tickNum++;
-	}
-	
+//强开教育版
+THook(LevelSettings*, "?setEducationFeaturesEnabled@LevelSettings@@QEAAAEAV1@_N@Z",
+	LevelSettings* _this, char a2) {
+	*((BYTE*)_this + 84) = true;
+	logger.info("Force to set education Features Enabled");
+	return _this;
 }
+

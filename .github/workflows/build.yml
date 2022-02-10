@@ -1,4 +1,4 @@
-name: Build Survival_Fly
+name: Build SurvivalFly
 
 on: [push]
 
@@ -28,17 +28,15 @@ jobs:
         unzip D:/BDS/server.zip -d D:/BDS > /dev/null
       shell: bash
 
-    # - name: Build Library
-    #   working-directory: ${{env.GITHUB_WORKSPACE}}
-    #   run: |
-    #     cd SDK
-    #     ls
-    #     cd Tools
-    #     mkdir ../LiteLoader
-    #     mkdir ../LiteLoader/Lib
-    #     ./LibraryBuilder.exe D:/BDS
-    #     mv ../LiteLoader/Lib/* ../Lib/
-    #   shell: bash
+    - name: Build Library
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        cd SDK/Tools
+        mkdir ../LiteLoader
+        mkdir ../LiteLoader/Lib
+        ./LibraryBuilder.exe D:/BDS
+        mv ../LiteLoader/Lib/* ../Lib/
+      shell: bash
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v1
@@ -56,14 +54,14 @@ jobs:
         mkdir D:/out/sdk/Lib
         mkdir D:/out/sdk/Header
         mkdir D:/out/plugins
-        mkdir D:/out/plugins/SurvivalFly
+        mkdir D:/out/plugins/Survival_Fly
     
     - name: Copy Out Files
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cp x64/Release/*.dll D:/out/plugins
         cp x64/Release/*.pdb D:/out/plugins
-        cp SurvivalFly/*.json D:/out/plugins/SurvivalFly
+        cp Survival_Fly/*.json D:/out/plugins/Survival_Fly
       shell: bash
 
     - name: Upload plugins

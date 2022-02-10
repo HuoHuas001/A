@@ -62,7 +62,7 @@
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>copy  "$(TargetPath)" "$(LocalDebuggerWorkingDirectory)plugins\"
+      <Command>copy  "$(TargetPath)" "$(LocalDebuggerWorkingDirectory)\plugins\"
 </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>

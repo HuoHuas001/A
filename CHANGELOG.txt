@@ -1,2 +1,4 @@
-## Survival Fly
-- Make First version
+## SurvivalFly v0.0.2
+- Update Config
+- Add particle
+- fix PlayerMovement
