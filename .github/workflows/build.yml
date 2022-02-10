@@ -22,7 +22,7 @@ jobs:
     - name: Download SDK
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        git submodule add https://github.com/LiteLDev/LiteLoaderSDK.git
+        git submodule add https://github.com/LiteLDev/LiteLoaderSDK.git ./SDK
         mv ./LiteLoaderSDK ./SDK
       shell: bash
      
