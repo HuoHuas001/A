@@ -22,7 +22,7 @@ jobs:
     - name: Download SDK
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        git submodule add LiteLDev LiteLoaderSDK
+        git submodule add
       shell: bash
      
     - name: Download Server
