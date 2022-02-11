@@ -31,7 +31,7 @@ using nlohmann::json;
 Logger logger("Survival_Fly");
 bool onlyOp = false, onlyAllow = false, slowFalling = true;
 string particle = "";
-int Falling = 3;
+int Falling = 3, slowFallingMode=0;
 json allowList = {};
 bool readFile() {
 	std::ifstream jsonFile("plugins/SurvivalFly/config.json");
@@ -47,6 +47,7 @@ bool readFile() {
 	allowList = config["allowList"];
 	particle = config["particle"].get<string>();
 	Falling = config["FallingPoint"].get<int>();
+	slowFallingMode = config["slowFallingMode"].get<int>();
 	if (Falling > 0) {
 		Falling *= -1;
 	}
@@ -156,6 +157,8 @@ bool getPlayerInAir(Player* pl) {
 	return (!pl->isOnGround()) && (!pl->isInWater());
 }
 
+
+
 void PluginInit()
 {
 	LL::registerPlugin("Survival_Fly", "Fly in Suvival mode.", LL::Version(0, 0, 1));
@@ -190,11 +193,11 @@ void PluginInit()
 	});
 
 	Event::PlayerLeftEvent::subscribe([](Event::PlayerLeftEvent ev) {
-		Flying[ev.mXUID] = false;
+		Flying.erase(ev.mXUID);
 		return true;
 	});
 
-	if (slowFalling) {
+	if (slowFalling && slowFallingMode == 0) {
 		Event::MobHurtEvent::subscribe([](Event::MobHurtEvent ev) {
 			Actor* ac = ev.mMob;
 			if (ac->isPlayer()) {
@@ -240,4 +243,25 @@ THook(LevelSettings*, "?setEducationFeaturesEnabled@LevelSettings@@QEAAAEAV1@_N@
 	return _this;
 }
 
+//缓降模式2
+int tickN = 0;
+THook(void, "?tick@Level@@UEAAXXZ", void* self) {
+	original(self);
+	try {
+		if (slowFalling && slowFallingMode >= 1) {
+			if (tickN >= 20) {
+				for (auto pl : Level::getAllPlayers()) {
+					if (Flying[pl->getXuid()] && (int)pl->getPlayerGameType() != 1) {
+						Level::runcmdEx("effect \"" + pl->getName() + "\" slow_falling 1 1 true");
+					}
+				}
+				tickN = 0;
+			}
+			tickN++;
+		}
+	}
+	catch (const char*& e) {
+		logger.error(e);
+	}
 
+}
