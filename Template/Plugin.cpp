@@ -19,8 +19,9 @@
 #include <MC/LevelSettings.hpp>
 #include <MC/MinecraftEventing.hpp>
 #include <MC/ActorDamageSource.hpp>
+#include <MC/Abilities.hpp>
 #include "../SDK/Header/third-party/Nlohmann/json.hpp"
-#include <windows.h>
+#include <ScheduleAPI.h>
 using namespace RegisterCommandHelper;
 
 #define HOOK(name, ret, sym, ...)	
@@ -33,6 +34,13 @@ bool onlyOp = false, onlyAllow = false, slowFalling = true;
 string particle = "";
 int Falling = 3, slowFallingMode=0;
 json allowList = {};
+
+Abilities* getPlayerAbilities(struct ActorUniqueID const& a0) {
+	class Abilities* (Level:: * rv)(struct ActorUniqueID const&);
+	*((void**)&rv) = dlsym("?getPlayerAbilities@Level@@UEAAPEAVAbilities@@AEBUActorUniqueID@@@Z");
+	return (Global<Level>->*rv)(std::forward<struct ActorUniqueID const&>(a0));
+}
+
 bool readFile() {
 	std::ifstream jsonFile("plugins/SurvivalFly/config.json");
 	if (!jsonFile.is_open()) {
@@ -157,7 +165,17 @@ bool getPlayerInAir(Player* pl) {
 	return (!pl->isOnGround()) && (!pl->isInWater());
 }
 
-
+//缓降模式2
+int tickN = 0;
+void AddSlowFly() {
+	for (auto pl : Level::getAllPlayers()) {
+		if (slowFalling && slowFallingMode >= 1) {
+			if (Flying[pl->getXuid()] && (int)pl->getPlayerGameType() != 1) {
+				Level::runcmdEx("effect \"" + pl->getName() + "\" slow_falling 1 1 true");
+			}
+		}
+	}
+}
 
 void PluginInit()
 {
@@ -194,6 +212,12 @@ void PluginInit()
 
 	Event::PlayerLeftEvent::subscribe([](Event::PlayerLeftEvent ev) {
 		Flying.erase(ev.mXUID);
+		return true;
+	});
+
+	Event::ServerStartedEvent::subscribe([](Event::ServerStartedEvent ev) {
+		logger.info("Start run Schedule");
+		Schedule::repeat(AddSlowFly, 40);
 		return true;
 	});
 
@@ -243,25 +267,4 @@ THook(LevelSettings*, "?setEducationFeaturesEnabled@LevelSettings@@QEAAAEAV1@_N@
 	return _this;
 }
 
-//缓降模式2
-int tickN = 0;
-THook(void, "?tick@Level@@UEAAXXZ", void* self) {
-	original(self);
-	try {
-		if (slowFalling && slowFallingMode >= 1) {
-			if (tickN >= 20) {
-				for (auto pl : Level::getAllPlayers()) {
-					if (Flying[pl->getXuid()] && (int)pl->getPlayerGameType() != 1) {
-						Level::runcmdEx("effect \"" + pl->getName() + "\" slow_falling 1 1 true");
-					}
-				}
-				tickN = 0;
-			}
-			tickN++;
-		}
-	}
-	catch (const char*& e) {
-		logger.error(e);
-	}
 
-}
